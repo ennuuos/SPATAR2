@@ -70,12 +70,10 @@ void move(float targetPos[3]){
         api.setPositionTarget(destPos);
 }
 
-float nextPhotoPos() {
-    float position[3];
+void nextPhotoPos(float position[3]) {
     unsigned short int i = nextPhotoID();
     game.getPOILoc(position, i % 3);
     setMagnitude(position, (i < 3) ? 0.475 : 0.385);
-    return *position;
 }
 
 int nextPhotoID() {
@@ -90,9 +88,11 @@ void takePhoto() {
     float pos[3];
     game.getPOILoc(pos, nextPhotoID());
     move(pos);
-    lookAt(pos, nextPhotoPos());
+    float targetPos[3];
+    nextPhotoPos(targetPos);
+    lookAt(pos, targetPos);
     
-    if(atAppoxLocation(pos) && approxFacePoint(pos)) {
+    if(atApproxLocation(pos) && approxFacePoint(pos)) {
         game.takePic(nextPhotoID());
     }
 }
@@ -126,14 +126,9 @@ void multiplyVectorByScalar(float final[3], float vector[3], float scalar) {
 
 void lookAt(float lookAt[3], float pointToLook[3]){
     float direction[3];
-    mathVecSubtract(vecBetween, pointToLook, lookAt, 3);
+    mathVecSubtract(direction, pointToLook, lookAt, 3);
     mathVecNormalize(direction, 3);
     api.setAttitudeTarget(direction);
-}
-
-void setMagnitude(float vector[3], float magnitude){
-    mathVecNormalize(vector, 3);
-    multiplyVectorByScalar(vector, vector, magnitude);
 }
 
 bool atApproxLocation(float vector[3]){
@@ -172,4 +167,3 @@ void upload(){
         game.uploadPic();
     }
 }
-
