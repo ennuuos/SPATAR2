@@ -481,3 +481,55 @@ float angleBetweenVectors(float vector1[3], float vector2[3]){
     }
     return angle * -1;
 }
+
+
+
+
+void lookAt(float lookAt[3], float pointToLook[3]){
+    float direction[3];
+    mathVecSubtract(vecBetween, pointToLook, lookAt, 3);
+    mathVecNormalize(direction, 3);
+    api.setAttitudeTarget(direction);
+}
+
+void setMagnitude(float vector[3], float magnitude){
+    mathVecNormalize(vector, 3);
+    multiplyVectorByScalar(vector, vector, magnitude);
+}
+
+bool atApproxLocation(float vector[3]){
+    float displacement[3];
+    mathVecSubtract(displacement, vector, ZRState, 3);
+    return (
+        mathVecMagnitude(displacement, 3) <= 0.02f
+    );
+}
+
+bool approxFacePoint(float vector[3]){
+    float vectorToPoint[3];
+    float attitude[3];
+    for(int i = 0; i < 3; i++){
+        attitude[i] = ZRState[3 + i];
+    }
+    mathVecSubtract(vectorToPoint, vector, ZRState, 3);
+    mathVecNormalize(vectorToPoint, 3);
+    return (
+        angleBetweenVectors(attitude, vectorToPoint) <= 0.5f
+    );
+}
+
+float angleBetweenVectors(float vector1[3], float vector2[3]){
+    float angle = 0;
+    angle = acosf((mathVecInner(vector1, vector2, 3))/(fabsf(mathVecMagnitude(vector1, 3)) * fabsf(mathVecMagnitude(vector2, 3))));
+    angle = angle * (3.141593 / 180);
+    return angle;
+}
+
+void upload(){
+    float target[3];
+    setMagnitude(target, 0.55);
+    move(target);
+    if(atApproxLocation(target)){
+        game.uploadPic();
+    }
+}
