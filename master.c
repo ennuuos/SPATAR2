@@ -75,7 +75,7 @@ float nextPhotoPos() {
     unsigned short int i = nextPhotoID();
     game.getPOILoc(position, i % 3);
     setMagnitude(position, (i < 3) ? 0.475 : 0.385);
-    return position;
+    return *position;
 }
 
 int nextPhotoID() {
@@ -87,7 +87,8 @@ int nextPhotoID() {
 }
 
 void takePhoto() {
-    float pos[3] = getPOILoc(pos, nextPhotoID())
+    float pos[3];
+    game.getPOILoc(pos, nextPhotoID());
     lookAt(pos, nextPhotoPos());
 }
 
