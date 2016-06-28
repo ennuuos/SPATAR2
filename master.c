@@ -89,7 +89,12 @@ int nextPhotoID() {
 void takePhoto() {
     float pos[3];
     game.getPOILoc(pos, nextPhotoID());
+    move(pos);
     lookAt(pos, nextPhotoPos());
+    
+    if(atAppoxLocation(pos) && approxFacePoint(pos)) {
+        game.takePic(nextPhotoID());
+    }
 }
 
 
