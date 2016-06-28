@@ -415,7 +415,7 @@ bool inOuter (float point[3]) {
 // returns true if in the shadow zone, where it is treated as a CYLINDER
 bool inShadow (float point[3]) {
 	//if on shadow side of the asteroid and within yz radius
-	if (point[0] > 0 && sqrtf(mathSquare(point[1]) + mathSquare(point[2]) <= asteroidRadius)) {
+	if (point[0] > 0 && sqrtf(mathSquare(point[1]) + mathSquare(point[2])) <= asteroidRadius) {
 		return true;
 	} else {
 		return false;
