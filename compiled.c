@@ -357,22 +357,12 @@ void takePhoto(int poid) {
 }
 
 bool canUpload(float position[3]) {
-	bool allowed = false;
-	//outer max radius
-	float photoRadius = 0.53;
-
-
-	//check if not within photo-zones
-	if (mathVecMagnitude(position, 3) > photoRadius) {
-		allowed = true;
+	//check if not within photo-zones or in shadow zone
+	if (mathVecMagnitude(position, 3) > outerZoneRadius || inShadow(position)) {
+		return true;
+	} else {
+	    return false;
 	}
-
-	//check if in shadow zone
-	if (inShadow(position)) {
-		allowed = true;
-	}
-
-	return allowed;
 }
 
 // FROM FILE: util/util.c
