@@ -48,6 +48,28 @@ void loop(){
 	}
 }
 
+void move(float targetPos[3]){
+    float destPos[3];
+    if ((ZRState[0] > 0 && targetPos[0] < 0) || (ZRState[0] < 0 && targetPos[0] > 0)){//avoid asteroid
+            destPos[0] = 0;
+            destPos[1] = ZRState[1];
+            destPos[2] = ZRState[2];
+        setMagnitude(destPos,0.6);
+        if(destPos[1] == 0 && destPos[2] == 0){
+            destPos[1] = 0.6;
+        }
+    }
+    else{
+        memcpy(destPos,targetPos,sizeof(float)*3);
+    }
+    float targetVel[3];
+    mathVecSubtract(targetVel,destPos,ZRState,3) ;
+    if (mathVecMagnitude(targetVel, 3) > 0.35)
+        api.setVelocityTarget(targetVel);
+    else
+        api.setPositionTarget(destPos);
+}
+
 float nextPhotoPos() {
     float position[3];
     unsigned short int i = nextPhotoID();
@@ -78,4 +100,18 @@ bool inShadow (float pointx, float pointy, float pointz) {
 	} else {
 		return false;
 	}
+}
+
+void setMagnitude(float vector[3], float magnitude) {
+	// Normalising a vector is to make its magnitude one, but preserve its direction.
+	// As such, if you normalise it, its magnitude is now one, and so if you then multiply it by a particular amount, that will be the magnitude.
+    mathVecNormalize(vector, 3);
+    multiplyVectorByScalar(vector, vector, magnitude);
+}
+
+void multiplyVectorByScalar(float final[3], float vector[3], float scalar) {
+	// Multiplying each component of a vector will multiply the magnitude by that much.
+    for (int i = 0; i < 3; i++) {
+        final[i] = vector[i] * scalar;
+    }
 }
