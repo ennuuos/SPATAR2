@@ -1,0 +1,211 @@
+//The new file
+
+
+//Declare any variables shared between functions here
+float ZRState[12];
+bool isOn;
+bool photosTaken[6];
+
+void init(){
+	//This function is called once when your code is first loaded.
+	isOn = true;
+
+	//IMPORTANT: make sure to set any variables that need an initial value.
+	//Do not assume variables will be set to 0 automatically!
+}
+
+void loop(){
+    //update self position
+    api.getMyZRState(ZRState);
+	//This function is called once per second.  Use it to control the satellite.
+	if(game.getNextFlare() == -1) {
+	    //turn on if off
+        if (!isOn) {
+            game.turnOn();
+            isOn = true;
+        }
+        //normal loop stuff
+        if (game.getMemoryFilled() == game.getMemorySize()) {
+            //upload photos if in photozone
+            upload();
+        } else {
+            //take photos
+            takePhoto();
+        }
+	}
+    else {
+        //emergency shutdown
+        if(game.getNextFlare() < 4) {
+            if (!inShadow(ZRState[0], ZRState[1], ZRState[2])) {
+                game.turnOff();
+                isOn = false;
+            }
+        }
+        //prepare for flare
+        if (game.getMemoryFilled() > 0) {
+            upload();
+        }
+	}
+}
+/*
+void move(float targetPos[3]){
+    float destPos[3];
+    if ((ZRState[0] > 0 && targetPos[0] < 0) || (ZRState[0] < 0 && targetPos[0] > 0)){//avoid asteroid
+            destPos[0] = 0;
+            destPos[1] = ZRState[1];
+            destPos[2] = ZRState[2];
+        setMagnitude(destPos,0.6);
+        if(destPos[1] == 0 && destPos[2] == 0){
+            destPos[1] = 0.6;
+        }
+    }
+    else{
+        memcpy(destPos,targetPos,sizeof(float)*3);
+    }
+    float targetVel[3];
+    mathVecSubtract(targetVel,destPos,ZRState,3) ;
+    if (mathVecMagnitude(targetVel, 3) > 0.35)
+        api.setVelocityTarget(targetVel);
+    else
+        api.setPositionTarget(destPos);
+}
+*/
+void basicMove(float targetPosition[3], bool stop) {
+    if (stop) {
+        api.setPositionTarget(targetPosition);
+        return;
+    }
+    float targetVelocity[3];
+    mathVecSubtract(targetVelocity, targetPosition, ZRState, 3);
+    setMagnitude(targetVelocity, 0.05f);
+    api.setVelocityTarget(targetVelocity);
+}
+
+void move(float targetPosition[3], float targetVelocityMagnitude) {
+    float position[3];
+    position[0] = ZRState[0];
+    position[1] = ZRState[1];
+    position[2] = ZRState[2];
+    float origin[3];
+    origin[0] = 0.0f;
+    origin[1] = 0.0f;
+    origin[2] = 0.0f;
+    // This function is designed to get from place to place, using basicMove(), but to account for the asteroid.
+    float wayPoint[3]; // The current way point to be used.
+    bool isWayPoint = false; // Is the point you end up going to a wayPoint?
+    closestPointInIntervalToPoint(wayPoint, origin, position, targetPosition); // The wayPoint is the closes point to the asteroid.
+    // But, if it is inside the raidus, it needs to be adjusted.
+    int x = 0;
+    while (mathVecMagnitude(wayPoint, 3) <= dangerZoneRadius + sphereRadius + atPointTollerance && x < 2) {
+        x ++;
+        isWayPoint = true;
+        setMagnitude(wayPoint, dangerZoneRadius + sphereRadius + atPointTollerance);
+        closestPointInIntervalToPoint(wayPoint, origin, position, wayPoint); // Setting to check if there is a point along this line.
+    }
+    // If the path passes through the origin for instance, the wayPoint will be null
+    // Don't use paths which pass through the origin.
+    //DEBUG(("%f, %f, %f", wayPoint[0], wayPoint[1], wayPoint[2]));
+    if (isWayPoint && mathVecMagnitude(wayPoint, 3)) {
+        basicMove(wayPoint, false);
+    } else {
+        basicMove(targetPosition, true);
+    }
+}
+
+void nextPhotoPos(float position[3]) {
+    unsigned short int i = nextPhotoID();
+    game.getPOILoc(position, i % 3);
+    setMagnitude(position, (i < 3) ? 0.475 : 0.385);
+}
+
+int nextPhotoID() {
+    for(unsigned short int i = 0; i < 6; i++) {
+        if(!photosTaken[i]) {
+            return i;
+        }
+    }
+}
+
+void takePhoto() {
+    float pos[3];
+    game.getPOILoc(pos, nextPhotoID());
+    move(pos);
+    float targetPos[3];
+    nextPhotoPos(targetPos);
+    lookAt(pos, targetPos);
+    
+    if(atApproxLocation(pos) && approxFacePoint(pos)) {
+        game.takePic(nextPhotoID());
+    }
+}
+
+
+///UTILITY
+bool inShadow (float pointx, float pointy, float pointz) {
+	//if on shadow side of the asteroid and within yz radius
+	if (pointx > 0 && sqrtf(mathSquare(pointy) + mathSquare(pointz)) <= 0.2) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+void setMagnitude(float vector[3], float magnitude) {
+	// Normalising a vector is to make its magnitude one, but preserve its direction.
+	// As such, if you normalise it, its magnitude is now one, and so if you then multiply it by a particular amount, that will be the magnitude.
+    mathVecNormalize(vector, 3);
+    multiplyVectorByScalar(vector, vector, magnitude);
+}
+
+void multiplyVectorByScalar(float final[3], float vector[3], float scalar) {
+	// Multiplying each component of a vector will multiply the magnitude by that much.
+    for (int i = 0; i < 3; i++) {
+        final[i] = vector[i] * scalar;
+    }
+}
+
+
+
+void lookAt(float lookAt[3], float pointToLook[3]){
+    float direction[3];
+    mathVecSubtract(direction, pointToLook, lookAt, 3);
+    mathVecNormalize(direction, 3);
+    api.setAttitudeTarget(direction);
+}
+
+bool atApproxLocation(float vector[3]){
+    float displacement[3];
+    mathVecSubtract(displacement, vector, ZRState, 3);
+    return (
+        mathVecMagnitude(displacement, 3) <= 0.02f
+    );
+}
+
+bool approxFacePoint(float vector[3]){
+    float vectorToPoint[3];
+    float attitude[3];
+    for(int i = 0; i < 3; i++){
+        attitude[i] = ZRState[3 + i];
+    }
+    mathVecSubtract(vectorToPoint, vector, ZRState, 3);
+    mathVecNormalize(vectorToPoint, 3);
+    return (
+        angleBetweenVectors(attitude, vectorToPoint) <= 0.5f
+    );
+}
+
+float angleBetweenVectors(float vector1[3], float vector2[3]){
+    float angle = 0;
+    angle = acosf((mathVecInner(vector1, vector2, 3))/(fabsf(mathVecMagnitude(vector1, 3)) * fabsf(mathVecMagnitude(vector2, 3))));
+    angle = angle * (3.141593 / 180);
+    return angle;
+}
+
+void upload(){
+    float target[3];
+    setMagnitude(target, 0.55);
+    move(target);
+    if(atApproxLocation(target)){
+        game.uploadPic();
+    }
+}
