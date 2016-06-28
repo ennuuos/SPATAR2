@@ -28,8 +28,7 @@ float atPointTollerance;
 float wayPointSpeed;
 
 //Camera Data:
-bool takenInner[3];
-bool takenOuter[3];
+bool taken[6];
 int poi;
 
 //State Data:
@@ -65,12 +64,9 @@ void init(){
     fState = 99;
 
     // Setting camera data:
-    takenInner[0] = false;
-    takenInner[1] = false;
-    takenInner[2] = false;
-    takenOuter[0] = false;
-    takenOuter[1] = false;
-    takenOuter[2] = false;
+    for(int i = 0; i <= 6; i++) {
+        taken[i] = false;
+    }
     poi = 0;
 }
 
@@ -303,14 +299,14 @@ void moveToUploadPos() {
 
 void getNextNode(bool* outer, int* poi) {
   for(int i = 0; i < 3; i++) {
-    if(!takenInner[i]) {
+    if(!taken[i]) {
       *outer = false;
       *poi = i;
       break;
     }
   }
   for(int i = 0; i < 3; i++) {
-    if(!takenOuter[i]) {
+    if(!taken[3 + i]) {
       *outer = true;
       *poi = i;
       break;
@@ -350,9 +346,9 @@ int possiblePhotos() {
 void takePhoto(int poid) {
     game.takePic(poid);
     if(inOuter(position)) {
-        takenOuter[poid] = true;
+        taken[3 + poid] = true;
     } else if(inInner(position)) {
-        takenInner[poid] = true;
+        taken[poid] = true;
     }
 }
 
