@@ -1,2 +1,3 @@
-# SPATAR2
-# Current Working File is 002
+# SPATAR
+
+submission.c is latest functional code.
